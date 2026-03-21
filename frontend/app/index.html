@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fit App - Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <h1>Fit App</h1>
+            <p class="subtle">Log workouts, track progress.</p>
+        </div>
+        <div class="user">
+            <button id="theme-toggle" class="toggle-btn" type="button">Dark</button>
+            <div class="user-meta">
+                <span id="user-info"></span>
+            </div>
+            <button id="logout">Logout</button>
+        </div>
+    </header>
+
+    <div class="notice-bar">
+        <div id="message" class="alert"></div>
+    </div>
+
+    <div class="page-wrapper">
+
+        <!-- Row 1: full-width catalog -->
+        <section class="card catalog">
+            <div class="row">
+                <h2>Exercise Catalog</h2>
+                <button id="seed-exercises">Seed Defaults</button>
+            </div>
+            <div class="catalog-body">
+                <form id="exercise-form" class="catalog-form grid compact">
+                    <div>
+                        <label for="exercise-name">Exercise Name</label>
+                        <input id="exercise-name" type="text" required>
+                    </div>
+                    <div>
+                        <label for="exercise-category">Category</label>
+                        <select id="exercise-category" required>
+                            <option value="arms">Arms</option>
+                            <option value="shoulders">Shoulders</option>
+                            <option value="chest">Chest</option>
+                            <option value="back">Back</option>
+                            <option value="legs">Legs</option>
+                            <option value="cardio">Cardio</option>
+                            <option value="core">Core</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="exercise-weighted">Type</label>
+                        <select id="exercise-weighted" required>
+                            <option value="weighted">Weighted</option>
+                            <option value="bodyweight">Bodyweight</option>
+                        </select>
+                    </div>
+                    <input id="exercise-id" type="hidden">
+                    <div class="actions">
+                        <button type="submit" id="save-exercise">Add Exercise</button>
+                        <button type="button" id="cancel-exercise" class="secondary">Cancel</button>
+                    </div>
+                </form>
+                <div id="exercise-list" class="list exercise-list"></div>
+            </div>
+        </section>
+
+        <!-- Row 2: two equal half-width columns -->
+        <div class="halves">
+            <section class="card entry-panel">
+                <h2>New Workout Entry</h2>
+                <form id="entry-form" class="grid">
+                    <div>
+                        <label for="workout-title">Workout Title</label>
+                        <input id="workout-title" type="text" required>
+                    </div>
+                    <div>
+                        <label for="exercise">Exercise</label>
+                        <select id="exercise" required></select>
+                    </div>
+                    <div>
+                        <label for="duration">Duration (minutes)</label>
+                        <input id="duration" type="number" min="1" max="600">
+                    </div>
+                    <div>
+                        <label for="reps">Reps</label>
+                        <input id="reps" type="number" min="1" max="1000">
+                    </div>
+                    <div>
+                        <label for="weight">Weight (kg)</label>
+                        <input id="weight" type="number" min="0" max="500" step="0.5" placeholder="Optional">
+                    </div>
+                    <input id="entry-id" type="hidden">
+                    <div class="actions">
+                        <button type="submit" id="save-entry">Save Entry</button>
+                        <button type="button" id="cancel-edit" class="secondary">Cancel</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="card entries-panel">
+                <div class="row">
+                    <h2>Your Workout Entries</h2>
+                </div>
+                <div id="entries" class="list"></div>
+            </section>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

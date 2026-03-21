@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Fit App - Login</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+	<div class="page">
+		<div class="card">
+			<h1>Fit App</h1>
+			<p class="subtle">Login to track your workouts.</p>
+
+			<div id="message"></div>
+
+			<form id="login-form">
+				<label for="username">Username</label>
+				<input id="username" name="username" type="text" required>
+
+				<label for="password">Password</label>
+				<input id="password" name="password" type="password" required>
+
+				<button type="submit">Login</button>
+			</form>
+
+			<p class="footer">No account? <a href="register.html">Create one</a></p>
+		</div>
+	</div>
+
+	<script>
+		const API_URL = "/api";
+
+		const form = document.getElementById("login-form");
+		const message = document.getElementById("message");
+
+		function showMessage(text, type) {
+			message.className = `alert ${type}`;
+			message.textContent = text;
+		}
+
+		form.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			showMessage("", "");
+
+			const payload = {
+				username: document.getElementById("username").value.trim(),
+				password: document.getElementById("password").value,
+			};
+
+			try {
+				const response = await fetch(`${API_URL}/login`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(payload),
+				});
+
+				if (!response.ok) {
+					const error = await response.json();
+					showMessage(error.detail || "Login failed", "error");
+					return;
+				}
+
+				const data = await response.json();
+				localStorage.setItem("token", data.access_token);
+				window.location.href = "index.html";
+			} catch (error) {
+				showMessage("Server not reachable", "error");
+			}
+		});
+	</script>
+</body>
+</html>
