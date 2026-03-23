@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text, inspect
 from datetime import datetime
-from .database import get_db, engine, Base, SessionLocal
+from .database import get_db, engine, Base
 from . import models
 from . import schemas
 from . import auth
@@ -20,7 +20,6 @@ app = FastAPI(
 def initialize_database_on_startup():
     """Auto-create database tables on startup"""
     Base.metadata.create_all(bind=engine)
-    seed_exercises_if_empty()
 
 # Configure CORS
 app.add_middleware(
@@ -59,18 +58,6 @@ def get_default_exercises():
         {"name": "Push-up", "category": "Chest", "is_weighted": False},
         {"name": "Running", "category": "Cardio", "is_weighted": False},
     ]
-
-
-def seed_exercises_if_empty():
-    db = SessionLocal()
-    try:
-        if db.query(models.Exercise).count() > 0:
-            return
-        for exercise_data in get_default_exercises():
-            db.add(models.Exercise(**exercise_data))
-        db.commit()
-    finally:
-        db.close()
 
 
 @app.get("/")
@@ -174,19 +161,39 @@ def list_tables(db: Session = Depends(get_db)):
 
 
 @app.get("/exercises", response_model=list[schemas.ExerciseRead])
-def list_exercises(db: Session = Depends(get_db)):
+def list_exercises(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
     """List all available exercises users can pick from"""
-    return db.query(models.Exercise).order_by(models.Exercise.name.asc()).all()
+    return (
+        db.query(models.Exercise)
+        .filter(models.Exercise.owner_user_id == current_user.id)
+        .order_by(models.Exercise.name.asc())
+        .all()
+    )
 
 
 @app.post("/exercises", response_model=schemas.ExerciseRead, status_code=201)
-def create_exercise(payload: schemas.ExerciseCreate, db: Session = Depends(get_db)):
+def create_exercise(
+    payload: schemas.ExerciseCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
     """Create a new exercise in the catalog"""
-    existing = db.query(models.Exercise).filter(models.Exercise.name == payload.name).first()
+    existing = (
+        db.query(models.Exercise)
+        .filter(
+            models.Exercise.owner_user_id == current_user.id,
+            models.Exercise.name == payload.name,
+        )
+        .first()
+    )
     if existing:
         raise HTTPException(status_code=409, detail="Exercise with this name already exists")
 
     exercise = models.Exercise(
+        owner_user_id=current_user.id,
         name=payload.name,
         category=payload.category,
         is_weighted=payload.is_weighted,
@@ -202,14 +209,30 @@ def update_exercise(
     exercise_id: int,
     payload: schemas.ExerciseUpdate,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
 ):
     """Update an exercise in the catalog"""
-    exercise = db.query(models.Exercise).filter(models.Exercise.id == exercise_id).first()
+    exercise = (
+        db.query(models.Exercise)
+        .filter(
+            models.Exercise.id == exercise_id,
+            models.Exercise.owner_user_id == current_user.id,
+        )
+        .first()
+    )
     if not exercise:
         raise HTTPException(status_code=404, detail="Exercise not found")
 
     if payload.name and payload.name != exercise.name:
-        existing = db.query(models.Exercise).filter(models.Exercise.name == payload.name).first()
+        existing = (
+            db.query(models.Exercise)
+            .filter(
+                models.Exercise.owner_user_id == current_user.id,
+                models.Exercise.name == payload.name,
+                models.Exercise.id != exercise.id,
+            )
+            .first()
+        )
         if existing:
             raise HTTPException(status_code=409, detail="Exercise with this name already exists")
 
@@ -238,9 +261,20 @@ def update_exercise(
 
 
 @app.delete("/exercises/{exercise_id}")
-def delete_exercise(exercise_id: int, db: Session = Depends(get_db)):
+def delete_exercise(
+    exercise_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
     """Delete an exercise from the catalog"""
-    exercise = db.query(models.Exercise).filter(models.Exercise.id == exercise_id).first()
+    exercise = (
+        db.query(models.Exercise)
+        .filter(
+            models.Exercise.id == exercise_id,
+            models.Exercise.owner_user_id == current_user.id,
+        )
+        .first()
+    )
     if not exercise:
         raise HTTPException(status_code=404, detail="Exercise not found")
 
@@ -300,14 +334,24 @@ def get_me(current_user: models.User = Depends(auth.get_current_user)):
 
 
 @app.post("/seed-exercises")
-def seed_exercises(db: Session = Depends(get_db)):
+def seed_exercises(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
     """Seed default exercise catalog for easier testing"""
     created = []
     for exercise_data in get_default_exercises():
-        exists = db.query(models.Exercise).filter(models.Exercise.name == exercise_data["name"]).first()
+        exists = (
+            db.query(models.Exercise)
+            .filter(
+                models.Exercise.owner_user_id == current_user.id,
+                models.Exercise.name == exercise_data["name"],
+            )
+            .first()
+        )
         if exists:
             continue
-        exercise = models.Exercise(**exercise_data)
+        exercise = models.Exercise(owner_user_id=current_user.id, **exercise_data)
         db.add(exercise)
         created.append(exercise_data["name"])
 
@@ -327,7 +371,14 @@ def create_workout_entry(
     current_user: models.User = Depends(auth.get_current_user),
 ):
     """Persist workout entry for the authenticated user"""
-    exercise = db.query(models.Exercise).filter(models.Exercise.id == payload.exercise_id).first()
+    exercise = (
+        db.query(models.Exercise)
+        .filter(
+            models.Exercise.id == payload.exercise_id,
+            models.Exercise.owner_user_id == current_user.id,
+        )
+        .first()
+    )
     if not exercise:
         raise HTTPException(status_code=404, detail="Exercise not found")
 
@@ -411,7 +462,14 @@ def update_workout_entry_patch(
     next_duration = payload.duration_minutes if payload.duration_minutes is not None else entry.duration_minutes
     next_weight = payload.weight_kg if payload.weight_kg is not None else entry.weight_kg
 
-    exercise = db.query(models.Exercise).filter(models.Exercise.id == next_exercise_id).first()
+    exercise = (
+        db.query(models.Exercise)
+        .filter(
+            models.Exercise.id == next_exercise_id,
+            models.Exercise.owner_user_id == current_user.id,
+        )
+        .first()
+    )
     if not exercise:
         raise HTTPException(status_code=404, detail="Exercise not found")
 

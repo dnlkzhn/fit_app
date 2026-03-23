@@ -44,8 +44,23 @@ docker compose down
 ## Usage
 1. Register a user via the frontend or Swagger UI.
 2. Login to access the app.
-3. Create workout entries.
+3. Seed or create exercises for your own account.
+4. Create workout entries.
+
+## Exercise Catalog Ownership
+- Exercise catalogs are user-scoped.
+- Exercises created by one user are visible only to that same user.
+- Another user must add or seed their own exercises.
+- Workout entries can reference only exercises owned by the authenticated user.
 
 ## Notes
 - If you run `docker compose down -v`, all database data is deleted.
-- On startup, the backend auto-creates tables and auto-seeds default exercises if empty.
+- Backend creates tables on startup; exercise seeding is user-triggered via `POST /seed-exercises`.
+
+## Fresh Start for This Schema
+Because exercise ownership is now required per user, reset existing DB data before running:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
