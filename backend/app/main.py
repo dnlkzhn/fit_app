@@ -12,7 +12,7 @@ from . import auth
 app = FastAPI(
     title="Cloud WebApp API",
     version="1.0.0",
-    description="Multi-tier web application with authentication and CRUD operations"
+    description="Fit Tracker API for managing exercises and workout entries with user authentication"
 )
 
 
@@ -21,10 +21,9 @@ def initialize_database_on_startup():
     """Auto-create database tables on startup"""
     Base.metadata.create_all(bind=engine)
 
-# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

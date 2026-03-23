@@ -14,7 +14,6 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    # Relationship to workout entries
     workout_entries = relationship(
         "WorkoutEntry", back_populates="user", cascade="all, delete-orphan"
     )
@@ -42,7 +41,7 @@ class Exercise(Base):
 
     owner = relationship("User", back_populates="exercises")
 
-    # Relationship to workout entries
+
     workout_entries = relationship("WorkoutEntry", back_populates="exercise")
 
     def __repr__(self):
@@ -64,7 +63,7 @@ class WorkoutEntry(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    # Relationships
+
     user = relationship("User", back_populates="workout_entries")
     exercise = relationship("Exercise", back_populates="workout_entries")
 
